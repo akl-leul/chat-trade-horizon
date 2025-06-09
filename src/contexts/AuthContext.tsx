@@ -1,5 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { ENV } from '@/config/environment';
+import { handleError } from '@/utils/errorHandler';
 
 interface User {
   id: string;
@@ -11,8 +13,8 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (username: string, password: string) => Promise<boolean>;
-  register: (userData: RegisterData) => Promise<boolean>;
+  login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  register: (userData: RegisterData) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -39,42 +41,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Initialize admin user if it doesn't exist
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const adminExists = users.find((u: any) => u.isAdmin === true);
-    
-    if (!adminExists) {
-      const adminUser = {
-        id: 'admin-1',
-        name: 'Administrator',
-        username: 'admin',
-        phone: '0961645755',
-        password: 'admin123',
-        isAdmin: true
-      };
-      users.push(adminUser);
-      localStorage.setItem('users', JSON.stringify(users));
-    } else {
-      // Update existing admin phone number if different
-      const adminIndex = users.findIndex((u: any) => u.isAdmin === true);
-      if (adminIndex !== -1 && users[adminIndex].phone !== '0961645755') {
-        users[adminIndex].phone = '0961645755';
-        localStorage.setItem('users', JSON.stringify(users));
+    try {
+      // Initialize admin user if it doesn't exist
+      const users = JSON.parse(localStorage.getItem(ENV.storage.users) || '[]');
+      const adminExists = users.find((u: any) => u.isAdmin === true);
+      
+      if (!adminExists) {
+        const adminUser = {
+          id: 'admin-1',
+          name: 'Administrator',
+          username: 'admin',
+          phone: '0961645755',
+          password: 'admin123',
+          isAdmin: true
+        };
+        users.push(adminUser);
+        localStorage.setItem(ENV.storage.users, JSON.stringify(users));
+      } else {
+        // Update existing admin phone number if different
+        const adminIndex = users.findIndex((u: any) => u.isAdmin === true);
+        if (adminIndex !== -1 && users[adminIndex].phone !== '0961645755') {
+          users[adminIndex].phone = '0961645755';
+          localStorage.setItem(ENV.storage.users, JSON.stringify(users));
+        }
       }
-    }
 
-    // Check for stored user data on app load
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      // Check for stored user data on app load
+      const storedUser = localStorage.getItem(ENV.storage.user);
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      }
+    } catch (error) {
+      console.error('Auth initialization error:', error);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
-  const login = async (username: string, password: string): Promise<boolean> => {
+  const login = async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      // Simulate API call - in production, this would be a real API
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
+      setIsLoading(true);
+      const users = JSON.parse(localStorage.getItem(ENV.storage.users) || '[]');
       const foundUser = users.find((u: any) => 
         (u.username === username || u.phone === username) && u.password === password
       );
@@ -88,19 +95,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           isAdmin: foundUser.isAdmin || false
         };
         setUser(userData);
-        localStorage.setItem('user', JSON.stringify(userData));
-        return true;
+        localStorage.setItem(ENV.storage.user, JSON.stringify(userData));
+        return { success: true };
       }
-      return false;
+      return { success: false, error: 'Invalid username/phone or password' };
     } catch (error) {
-      console.error('Login error:', error);
-      return false;
+      const errorMessage = handleError(error);
+      return { success: false, error: errorMessage };
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const register = async (userData: RegisterData): Promise<boolean> => {
+  const register = async (userData: RegisterData): Promise<{ success: boolean; error?: string }> => {
     try {
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
+      setIsLoading(true);
+      const users = JSON.parse(localStorage.getItem(ENV.storage.users) || '[]');
       
       // Check if username or phone already exists
       const existingUser = users.find((u: any) => 
@@ -108,7 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       );
       
       if (existingUser) {
-        return false;
+        return { success: false, error: 'Username or phone number already exists' };
       }
 
       const newUser = {
@@ -118,7 +128,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
 
       users.push(newUser);
-      localStorage.setItem('users', JSON.stringify(users));
+      localStorage.setItem(ENV.storage.users, JSON.stringify(users));
       
       const userDataForAuth = {
         id: newUser.id,
@@ -129,17 +139,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       
       setUser(userDataForAuth);
-      localStorage.setItem('user', JSON.stringify(userDataForAuth));
-      return true;
+      localStorage.setItem(ENV.storage.user, JSON.stringify(userDataForAuth));
+      return { success: true };
     } catch (error) {
-      console.error('Registration error:', error);
-      return false;
+      const errorMessage = handleError(error);
+      return { success: false, error: errorMessage };
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
+    try {
+      setUser(null);
+      localStorage.removeItem(ENV.storage.user);
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   return (
