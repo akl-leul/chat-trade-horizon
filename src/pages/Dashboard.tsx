@@ -190,8 +190,9 @@ const Dashboard = () => {
                   <h3 className="text-lg font-semibold mb-2">Admin Panel</h3>
                   <p className="text-foreground/60">Manage users and settings</p>
                 </CardContent>
-              </Link>
-            )}
+              </Card>
+            </Link>
+          )}
         </div>
       </div>
     </div>
