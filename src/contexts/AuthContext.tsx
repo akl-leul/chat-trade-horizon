@@ -39,6 +39,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Initialize admin user if it doesn't exist
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    const adminExists = users.find((u: any) => u.isAdmin === true);
+    
+    if (!adminExists) {
+      const adminUser = {
+        id: 'admin-1',
+        name: 'Administrator',
+        username: 'admin',
+        phone: '0961645755',
+        password: 'admin123',
+        isAdmin: true
+      };
+      users.push(adminUser);
+      localStorage.setItem('users', JSON.stringify(users));
+    } else {
+      // Update existing admin phone number if different
+      const adminIndex = users.findIndex((u: any) => u.isAdmin === true);
+      if (adminIndex !== -1 && users[adminIndex].phone !== '0961645755') {
+        users[adminIndex].phone = '0961645755';
+        localStorage.setItem('users', JSON.stringify(users));
+      }
+    }
+
     // Check for stored user data on app load
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
