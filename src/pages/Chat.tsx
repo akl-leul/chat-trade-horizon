@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useParams } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
@@ -24,6 +24,15 @@ const Chat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [chatPartner, setChatPartner] = useState<any>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   useEffect(() => {
     if (userId) {
@@ -63,28 +72,35 @@ const Chat = () => {
     setNewMessage('');
   };
 
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
   return (
     <div className="min-h-screen">
       <Navigation />
       
       <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-120px)]">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-120px)]">
           {/* Chat List - Left Side */}
           <div className="lg:col-span-1">
             <ChatList currentChatUserId={userId} />
           </div>
 
           {/* Chat Window - Right Side */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-3">
             <Card className="glass-effect border-white/20 h-full flex flex-col">
-              <CardHeader>
+              <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
                   <MessageSquare className="w-6 h-6" />
                   {chatPartner ? `Chat with ${chatPartner.name}` : 'Select a user to start chatting'}
                 </CardTitle>
               </CardHeader>
               
-              <CardContent className="flex-1 flex flex-col">
+              <CardContent className="flex-1 flex flex-col p-4">
                 {/* Messages Area */}
                 <ScrollArea className="flex-1 mb-4 p-4 bg-white/5 rounded-lg">
                   {!userId ? (
@@ -100,40 +116,54 @@ const Chat = () => {
                       </p>
                     </div>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       {messages.map((message) => (
                         <div
                           key={message.id}
-                          className={`mb-3 p-3 rounded-lg max-w-xs ${
-                            message.senderId === user?.id
-                              ? 'ml-auto bg-primary/20 text-right'
-                              : 'mr-auto bg-white/10'
+                          className={`flex ${
+                            message.senderId === user?.id ? 'justify-end' : 'justify-start'
                           }`}
                         >
-                          <p className="text-sm font-semibold text-foreground/80">
-                            {message.senderName}
-                          </p>
-                          <p className="text-foreground">{message.content}</p>
-                          <p className="text-xs text-foreground/60 mt-1">
-                            {new Date(message.timestamp).toLocaleTimeString()}
-                          </p>
+                          <div
+                            className={`max-w-xs lg:max-w-md xl:max-w-lg p-3 rounded-lg ${
+                              message.senderId === user?.id
+                                ? 'bg-primary/20 text-right border border-primary/30'
+                                : 'bg-white/10 border border-white/10'
+                            }`}
+                          >
+                            <p className="text-sm font-semibold text-foreground/80 mb-1">
+                              {message.senderName}
+                            </p>
+                            <p className="text-foreground break-words">{message.content}</p>
+                            <p className="text-xs text-foreground/60 mt-1">
+                              {new Date(message.timestamp).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </p>
+                          </div>
                         </div>
                       ))}
+                      <div ref={messagesEndRef} />
                     </div>
                   )}
                 </ScrollArea>
 
                 {/* Message Input */}
                 {chatPartner && (
-                  <div className="flex gap-2 mt-auto">
+                  <div className="flex gap-2">
                     <Input
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       placeholder="Type your message..."
                       className="bg-white/5 border-white/20"
-                      onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                      onKeyPress={handleKeyPress}
                     />
-                    <Button onClick={sendMessage} className="bg-primary hover:bg-primary/90">
+                    <Button 
+                      onClick={sendMessage} 
+                      className="bg-primary hover:bg-primary/90"
+                      disabled={!newMessage.trim()}
+                    >
                       <Send className="w-4 h-4" />
                     </Button>
                   </div>

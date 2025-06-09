@@ -13,7 +13,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (username: string, password: string) => Promise<boolean>;
   register: (userData: RegisterData) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   isLoading: boolean;
@@ -78,7 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const login = async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const login = async (username: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
       const users = JSON.parse(localStorage.getItem(ENV.storage.users) || '[]');
@@ -96,12 +96,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         setUser(userData);
         localStorage.setItem(ENV.storage.user, JSON.stringify(userData));
-        return { success: true };
+        return true;
       }
-      return { success: false, error: 'Invalid username/phone or password' };
+      return false;
     } catch (error) {
-      const errorMessage = handleError(error);
-      return { success: false, error: errorMessage };
+      console.error('Login error:', error);
+      return false;
     } finally {
       setIsLoading(false);
     }
