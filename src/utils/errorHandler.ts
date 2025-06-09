@@ -1,4 +1,6 @@
 
+import React from 'react';
+
 export class AppError extends Error {
   constructor(
     message: string,
@@ -24,27 +26,35 @@ export const handleError = (error: unknown): string => {
   return 'An unexpected error occurred. Please try again.';
 };
 
-export const withErrorBoundary = <T extends Record<string, any>>(
+export function withErrorBoundary<T extends Record<string, any>>(
   Component: React.ComponentType<T>
-): React.ComponentType<T> => {
+): React.ComponentType<T> {
   return function ErrorBoundaryWrapper(props: T) {
     try {
-      return <Component {...props} />;
+      return React.createElement(Component, props);
     } catch (error) {
       console.error('Component error:', error);
-      return (
-        <div className="flex items-center justify-center min-h-[200px]">
-          <div className="text-center">
-            <p className="text-destructive mb-2">Something went wrong</p>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="text-primary hover:underline"
-            >
-              Reload page
-            </button>
-          </div>
-        </div>
+      return React.createElement(
+        'div',
+        { className: 'flex items-center justify-center min-h-[200px]' },
+        React.createElement(
+          'div',
+          { className: 'text-center' },
+          React.createElement(
+            'p',
+            { className: 'text-destructive mb-2' },
+            'Something went wrong'
+          ),
+          React.createElement(
+            'button',
+            {
+              onClick: () => window.location.reload(),
+              className: 'text-primary hover:underline'
+            },
+            'Reload page'
+          )
+        )
       );
     }
   };
-};
+}
